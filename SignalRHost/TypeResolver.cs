@@ -72,6 +72,8 @@ namespace SignalRHost
 					&& typeof(IHandler<>).IsAssignableFrom(i.GetGenericTypeDefinition())
 				   select t;
 
+			container.Register()
+
 			if (handlers == null)
 				handlers = list;
 			else
