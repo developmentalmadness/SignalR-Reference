@@ -2,24 +2,32 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 	<title></title>
-	<script src="Scripts/jquery-1.6.4.js"></script>
-	<script src="Scripts/jquery.signalR-2.0.2.js"></script>
-	<script src="http://local.dev.com:8081/signalr/hubs" type="text/javascript"></script>
-
+	<script src="Scripts/jquery-1.6.4.min.js"></script>
+	<script src="Scripts/jquery.signalR-2.0.2.min.js"></script>
+	
 	<script type="text/javascript">
 		$(function () {
+			$.support.cors = true;
+
 			var conn = $.connection("http://local.dev.com:8081/chat");
 
-			conn.start().done(function () {
+			conn.start({ transport: 'auto', xdomain: true }).done(function () {
 				$("#chatWindow").val("Connected\n");
 				$("#sendButton").click(function () {
 					conn.send({ "Send" : { "Message": $("#messageTextBox").val(), "Groups": [ "All" ] } });
 					$("#messageTextBox").val("");
 				});
+			})
+			.fail(function(){
+				$("#chatWindow").val($("#chatWindow").val() + "Error connecting to chat service\n");
 			});
 
 			conn.received(function(data){
 				$("#chatWindow").val($("#chatWindow").val() + data + "\n");
+			});
+
+			conn.error(function (err) {
+				$("#chatWindow").val($("#chatWindow").val() + "ERROR: " + err.Message + "\n");
 			});
 		});
 	</script>

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNet.SignalR;
+using Microsoft.Practices.Unity;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SignalRHost.Messaging.Commands;
@@ -12,27 +13,30 @@ namespace SignalRHost
 {
 	public class ChatConnection : PersistentConnection
 	{
+		private ChatBus bus;
+		private IUnityContainer container;
+
+		public ChatConnection(ChatBus bus, IUnityContainer container)
+		{
+			this.bus = bus;
+			this.container = container;
+		}
+
 		protected override Task OnConnected(IRequest request, string connectionId)
 		{
+			Groups.Add(connectionId, "All");
 			return base.OnConnected(request, connectionId);
 		}
 
 		
 		protected override Task OnReceived(IRequest request, string connectionId, string data)
 		{
-			var obj = JToken.Parse(data);
-			if (obj is JObject)
+			using (var child = container.CreateChildContainer())
 			{
-				JToken type = obj.First()[0];
-				// get name as string
-
-				// load .NET type
-
-				// call ToObject(System.Type)
-
-				// resolve Handler<T>(T)
+				child.RegisterInstance<IConnection>(this.Connection);
+				child.RegisterInstance<IConnectionGroupManager>(this.Groups);
+				return bus.OnReceived(request, connectionId, data);
 			}
-			return base.OnReceived(request, connectionId, data);
 		}
 	}
 }

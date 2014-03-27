@@ -28,10 +28,11 @@ namespace SignalRHost
 			return new Task(() =>
 			{
 				dynamic cmd = resolver.ResolveCommand(data);
+				
 				cmd.ConnectionId = connectionId;
 
-				// this sucks - need to be able to pass in arguments or access request context
-				dynamic handler = resolver.ResolveCommandHandler(cmd.GetType());
+				dynamic handler = resolver.ResolveCommandHandler(cmd.GetType(), request);
+
 				if(handler != null)
 					handler.Handle(cmd);
 			});

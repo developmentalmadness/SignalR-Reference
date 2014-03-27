@@ -24,11 +24,19 @@ namespace SignalRHost
 				WithName.Default
 			);
 
+			TypeResolver resolver = container.Resolve<TypeResolver>();
+			resolver.LoadCommands(new string[] { "SignalRHost.Messaging.Commands" });
+			resolver.LoadHandlers(new string[] { "SignalRHost.Handlers" });
+			container.RegisterInstance(resolver);
+
 			// For more information on how to configure your application, visit http://go.microsoft.com/fwlink/?LinkID=316888
-			app.UseCors(CorsOptions.AllowAll);
-			app.MapConnection<ChatConnection>("/chat", new ConnectionConfiguration
+			app.Map("/chat", x =>
 			{
-				Resolver = new UnityDependencyResolver(container)
+				x.UseCors(CorsOptions.AllowAll);
+				x.RunSignalR<ChatConnection>(new ConnectionConfiguration
+				{
+					Resolver = new UnityDependencyResolver(container)
+				});
 			});
 		}
 	}

@@ -25,12 +25,16 @@ namespace SignalRHost.Handlers
 			if (message.Groups.Length == 0)
 				message.Groups = new string[] { "All" };
 
-			return groups.Send(new List<string>(message.Groups), new MessageSent
-			{
-				Username = message.Username,
-				Message = message.Message,
-				Timestamp = DateTimeOffset.UtcNow
-			}, message.ConnectionId);
+			return groups.Send(
+				new List<string>(message.Groups), 
+				new MessageSent
+				{
+					Username = message.Username,
+					Message = message.Message,
+					Timestamp = DateTimeOffset.UtcNow
+				}, 
+				message.ConnectionId
+			);
 		}
 	}
 }

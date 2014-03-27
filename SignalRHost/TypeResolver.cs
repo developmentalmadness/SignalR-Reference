@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNet.SignalR;
+using Microsoft.Practices.Unity;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -12,19 +15,20 @@ namespace SignalRHost
 	public class TypeResolver
 	{
 		IEnumerable<Type> commands;
-		IEnumerable<Type> handlers;
+		IDictionary<Type, Type> handlers = new Dictionary<Type, Type>();
 
 		private static object sync_lock = new object();
 		private static IEnumerable<Type> types;
 
-		public IDependencyResolver container;
+		public IUnityContainer container;
 
-		public TypeResolver(IDependencyResolver container)
+		public TypeResolver(IUnityContainer container)
 		{
-			this.container = container;	
+			this.container = container;
+			GetExportedTypes();
 		}
 
-		private static IEnumerable<Type> GetExportedTypes()
+		internal static IEnumerable<Type> GetExportedTypes()
 		{
 			if (types == null)
 			{
@@ -72,60 +76,68 @@ namespace SignalRHost
 					&& typeof(IHandler<>).IsAssignableFrom(i.GetGenericTypeDefinition())
 				   select t;
 
-			container.Register()
+			foreach (var h in list)
+			{
+				var interfaces = from i in h.GetInterfaces()
+								 where i.IsGenericType
+									&& typeof(IHandler<>).IsAssignableFrom(i.GetGenericTypeDefinition())
+									select i;
 
-			if (handlers == null)
-				handlers = list;
-			else
-				handlers = handlers.Union(list);
+				lock (sync_lock)
+				{
+					foreach (var i in interfaces)
+					{
+						container.RegisterType(i, h);
+						handlers.Add(
+							i.GetGenericArguments()[0],
+							i
+						);
+					}
+				}
+			}
 		}
 
 		public object ResolveCommand(string data)
 		{
-			var obj = JToken.Parse(data);
+			var obj = JToken.Parse(data) as JObject;
 
-			if (obj is JObject)
+			if (obj != null)
 			{
-				JToken type = obj.First();
-				if (type == null) return null;
+				var type = obj.First as JProperty;
 
-				// get name as string
-				var name = ((JProperty)type).Name;
+				if (type != null)
+				{
+					// get name as string
+					var name = type.Name;
 
-				// load .NET type
-				var t = FindCommandType(name);
+					// load .NET type
+					var t = FindCommandType(name);
 
-				// call ToObject(System.Type)
-				return obj.ToObject(t);
+					// call ToObject(System.Type)
+					var value = type.Value as JObject;
+
+					if (value != null)
+						return value.ToObject(t);
+				}
 			}
 
 			return null;
 		}
 
-		public object ResolveCommandHandler(Type commandType)
+		public object ResolveCommandHandler(Type commandType, IRequest request)
 		{
-			return (
-					from h in handlers
-						from i in h.GetInterfaces()
-							where i.IsGenericType
-								&& commandType.IsAssignableFrom(i.GetGenericArguments()[0])
-								&& typeof(IHandler<>).IsAssignableFrom(i.GetGenericTypeDefinition())
-					select h
-				).SingleOrDefault();
+			var child = container.CreateChildContainer();
+			child.RegisterInstance<IRequest>(request);
+
+			// define new IHandler<T> type based on commandType parameter
+			var hType = handlers[commandType];
+
+			return child.Resolve(hType);
 		}
 
 		public Type FindCommandType(string name)
 		{
 			return commands.SingleOrDefault(c => c.Name == name);
-		}
-
-		public object FindHandlerType(string name)
-		{
-			var handler = handlers.SingleOrDefault(h => h.Name == name);
-			if (handler == null)
-				return null;
-
-			return container.Resolve(handler);
 		}
 	}
 }
