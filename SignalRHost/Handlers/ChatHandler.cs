@@ -11,13 +11,11 @@ namespace SignalRHost.Handlers
 {
 	public class ChatHandler : IHandler<Send>
 	{
-		IConnection bus;
-		IConnectionGroupManager groups;
+		IPersistentConnectionContext context;
 
 		public ChatHandler(IDependencyResolver resolver)
 		{
-			this.bus = resolver.Resolve<IConnection>();
-			this.groups = resolver.Resolve<IConnectionGroupManager>();
+			this.context = resolver.Resolve<IPersistentConnectionContext>();
 		}
 
 		public Task Handle(Send message)
@@ -25,16 +23,23 @@ namespace SignalRHost.Handlers
 			if (message.Groups.Length == 0)
 				message.Groups = new string[] { "All" };
 
-			return groups.Send(
-				new List<string>(message.Groups), 
-				new MessageSent
+			return context.Connection.Broadcast(new MessageSent
 				{
 					Username = message.Username,
 					Message = message.Message,
 					Timestamp = DateTimeOffset.UtcNow
-				} 
-				//, message.ConnectionId
+				}
 			);
+			//return context.Groups.Send(
+			//	new List<string>(message.Groups), 
+			//	new MessageSent
+			//	{
+			//		Username = message.Username,
+			//		Message = message.Message,
+			//		Timestamp = DateTimeOffset.UtcNow
+			//	} 
+			//	//, message.ConnectionId
+			//);
 		}
 	}
 }
