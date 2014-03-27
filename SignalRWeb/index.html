@@ -9,7 +9,7 @@
 		$(function () {
 			$.support.cors = true;
 
-			var conn = $.connection("http://local.dev.com:8081/chat");
+			var conn = $.connection("http://local.dev.com:8091/chat");
 
 			conn.start({ transport: 'auto', xdomain: true }).done(function () {
 				$("#chatWindow").val("Connected\n");
@@ -23,7 +23,7 @@
 			});
 
 			conn.received(function(data){
-				$("#chatWindow").val($("#chatWindow").val() + data + "\n");
+				$("#chatWindow").val($("#chatWindow").val() + "RECEIVED: " + data + "\n");
 			});
 
 			conn.error(function (err) {

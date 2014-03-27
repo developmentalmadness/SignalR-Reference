@@ -14,10 +14,10 @@ namespace SignalRHost.Handlers
 		IConnection bus;
 		IConnectionGroupManager groups;
 
-		public ChatHandler(IConnection bus, IConnectionGroupManager groups)
+		public ChatHandler(IDependencyResolver resolver)
 		{
-			this.bus = bus;
-			this.groups = groups;
+			this.bus = resolver.Resolve<IConnection>();
+			this.groups = resolver.Resolve<IConnectionGroupManager>();
 		}
 
 		public Task Handle(Send message)
@@ -32,8 +32,8 @@ namespace SignalRHost.Handlers
 					Username = message.Username,
 					Message = message.Message,
 					Timestamp = DateTimeOffset.UtcNow
-				}, 
-				message.ConnectionId
+				} 
+				//, message.ConnectionId
 			);
 		}
 	}

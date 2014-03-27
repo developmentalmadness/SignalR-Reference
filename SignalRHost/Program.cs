@@ -12,7 +12,7 @@ namespace SignalRHost
 		static void Main(string[] args)
 		{
 			// requires netsh http add urlacl url=http://*:8081/ user=[machine_name]\[user_name]
-			string url = "http://*:8081";
+			string url = "http://*:8091";
 			using (WebApp.Start(url))
 			{
 				Console.WriteLine("Server running on {0}", url);

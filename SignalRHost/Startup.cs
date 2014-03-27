@@ -7,6 +7,7 @@ using Microsoft.AspNet.SignalR;
 using Microsoft.Practices.Unity;
 using SignalRHost.Utility;
 using System.Reflection;
+using Microsoft.AspNet.SignalR.Infrastructure;
 
 [assembly: OwinStartup(typeof(SignalRHost.Startup))]
 
@@ -24,10 +25,23 @@ namespace SignalRHost
 				WithName.Default
 			);
 
+			container.RegisterType(typeof(TypeResolver));
+			container.RegisterType(typeof(ChatBus));
+
 			TypeResolver resolver = container.Resolve<TypeResolver>();
 			resolver.LoadCommands(new string[] { "SignalRHost.Messaging.Commands" });
 			resolver.LoadHandlers(new string[] { "SignalRHost.Handlers" });
 			container.RegisterInstance(resolver);
+
+			
+			var unity = new UnityDependencyResolver(container);
+			
+			container.RegisterType<IPersistentConnectionContext>(new InjectionFactory(x => 
+				unity.Resolve<IConnectionManager>().GetConnectionContext<ChatConnection>()
+			));
+
+			GlobalHost.DependencyResolver = unity;
+			container.RegisterInstance<IDependencyResolver>(unity);
 
 			// For more information on how to configure your application, visit http://go.microsoft.com/fwlink/?LinkID=316888
 			app.Map("/chat", x =>
@@ -35,7 +49,7 @@ namespace SignalRHost
 				x.UseCors(CorsOptions.AllowAll);
 				x.RunSignalR<ChatConnection>(new ConnectionConfiguration
 				{
-					Resolver = new UnityDependencyResolver(container)
+					Resolver = unity
 				});
 			});
 		}

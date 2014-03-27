@@ -16,21 +16,23 @@ namespace SignalRHost
 		private ChatBus bus;
 		private IUnityContainer container;
 
-		public ChatConnection(ChatBus bus, IUnityContainer container)
+		public ChatConnection()
 		{
-			this.bus = bus;
-			this.container = container;
+			container = GlobalHost.DependencyResolver.Resolve<IUnityContainer>();
+			bus = container.Resolve<ChatBus>();
 		}
 
-		protected override Task OnConnected(IRequest request, string connectionId)
+		protected override async Task OnConnected(IRequest request, string connectionId)
 		{
-			Groups.Add(connectionId, "All");
-			return base.OnConnected(request, connectionId);
+			//Groups.Add(connectionId, "All");
+			await base.Connection.Broadcast("Welcome!");
+			//return base.OnConnected(request, connectionId);
 		}
 
 		
 		protected override Task OnReceived(IRequest request, string connectionId, string data)
 		{
+			//return base.OnReceived(request, connectionId, data);
 			using (var child = container.CreateChildContainer())
 			{
 				child.RegisterInstance<IConnection>(this.Connection);

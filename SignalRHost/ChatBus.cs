@@ -25,17 +25,23 @@ namespace SignalRHost
 
 		public Task OnReceived(IRequest request, string connectionId, string data)
 		{
-			return new Task(() =>
-			{
-				dynamic cmd = resolver.ResolveCommand(data);
-				
-				cmd.ConnectionId = connectionId;
+			dynamic cmd = resolver.ResolveCommand(data);
 
-				dynamic handler = resolver.ResolveCommandHandler(cmd.GetType(), request);
+			cmd.ConnectionId = connectionId;
 
-				if(handler != null)
-					handler.Handle(cmd);
-			});
+			dynamic handler = resolver.ResolveCommandHandler(cmd.GetType(), request);
+
+			if (handler != null)
+				return handler.Handle(cmd);
+
+			return EmptyTask();
+		}
+
+		private Task EmptyTask()
+		{
+			var tcs = new TaskCompletionSource<object>();
+			tcs.SetResult(null);
+			return tcs.Task;
 		}
 	}
 }
