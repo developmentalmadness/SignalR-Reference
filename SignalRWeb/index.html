@@ -27,6 +27,7 @@
 					chat.val(chat.val() + "CONNECTION LOST\n");
 					connected = false;
 				} else {
+					// FIX: after connection lost for timeout period, this will fire just before connection is destroyed
 					chat.val(chat.val() + "CONNECTION RESTORED\n");
 					connected = true;
 				}

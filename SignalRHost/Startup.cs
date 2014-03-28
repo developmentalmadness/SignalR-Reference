@@ -25,8 +25,9 @@ namespace SignalRHost
 				WithName.Default
 			);
 
-			container.RegisterType(typeof(TypeResolver));
-			container.RegisterType(typeof(ChatBus));
+			container.RegisterType<TypeResolver>();
+			container.RegisterType<ChatBus>();
+			container.RegisterType<ChatConnection>();
 
 			TypeResolver resolver = container.Resolve<TypeResolver>();
 			resolver.LoadCommands(new string[] { "SignalRHost.Messaging.Commands" });
