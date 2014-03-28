@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNet.SignalR.Tracing;
+﻿using Microsoft.AspNet.SignalR;
+using Microsoft.AspNet.SignalR.Tracing;
 using Microsoft.Practices.Unity;
 using Newtonsoft.Json.Linq;
 using System;
@@ -28,10 +29,12 @@ namespace SignalRHost
 		private IUnityContainer container;
 		private TraceSource logger;
 
-		public TypeResolver(IUnityContainer container, ITraceManager traceManager)
+		public TypeResolver(IUnityContainer container)
 		{
 			this.container = container;
-			this.logger = traceManager["SignalRHost"];
+
+			// FIXME: SignalR's default services are registered privatly w/in DefaultDependencyResolver so they aren't accessable as chained dependencies
+			this.logger = container.Resolve<IDependencyResolver>().Resolve<ITraceManager>()["SignalRHost"];
 			GetExportedTypes();
 		}
 

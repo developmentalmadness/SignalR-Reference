@@ -17,10 +17,17 @@ namespace SignalRHost
 	public class ChatRouter
 	{
 		TypeResolver resolver;
+		IPersistentConnectionContext context;
 
-		public ChatRouter(TypeResolver resolver)
+		public ChatRouter(TypeResolver resolver, IPersistentConnectionContext context)
 		{
 			this.resolver = resolver;
+			this.context = context;
+		}
+
+		public Task OnConnected(IRequest request, string connectionId)
+		{
+			return context.Connection.Broadcast("Welcome!");
 		}
 
 		public Task OnReceived(IRequest request, string connectionId, string data)

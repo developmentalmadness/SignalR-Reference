@@ -13,7 +13,7 @@
 			var chat = $("#chatWindow");
 
 			conn.received(function(data){
-				chat.val(chat.val() + "RECEIVED: " + data + "\n");
+				chat.val(chat.val() + "[" + data.Username + "] : " + data.Message + "\n");
 			});
 
 			conn.error(function (err) {

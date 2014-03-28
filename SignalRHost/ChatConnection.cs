@@ -15,8 +15,7 @@ namespace SignalRHost
 
 		protected override Task OnConnected(IRequest request, string connectionId)
 		{
-			//Groups.Add(connectionId, "All");
-			return base.Connection.Broadcast("Welcome!");
+			return router.OnConnected(request, connectionId);
 		}
 		
 		protected override Task OnReceived(IRequest request, string connectionId, string data)
