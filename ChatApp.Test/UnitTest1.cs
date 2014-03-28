@@ -38,7 +38,9 @@ namespace ChatApp.Test
 			traceManager.SetupGet(x => x["SignalRHost"]).Returns(new TraceSource("SignalRHost"));
 
 			container = new UnityContainer();
+			var signalRresolver = container.Resolve<UnityDependencyResolver>();
 
+			container.RegisterInstance<IDependencyResolver>(signalRresolver);
 			container.RegisterInstance<IConnection>(connection.Object);
 			container.RegisterInstance<IConnectionGroupManager>(groups.Object);
 			container.RegisterInstance<IPersistentConnectionContext>(context.Object);
@@ -88,7 +90,7 @@ namespace ChatApp.Test
 
 			var request = new Mock<IRequest>();
 
-			var target = new ChatRouter(resolver);
+			var target = container.Resolve<ChatRouter>();
 			var task = target.OnReceived(request.Object, connectionId, "{ \"Send\": { \"Username\": \"Mark\", \"Message\": \"Hello, World!\", \"Groups\": [\"All\"] } }");
 
 			if (!task.IsCompleted)
