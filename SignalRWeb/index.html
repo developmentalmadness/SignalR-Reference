@@ -10,25 +10,63 @@
 			$.support.cors = true;
 
 			var conn = $.connection("http://local.dev.com:8091/chat");
-
-			conn.start({ transport: 'auto', xdomain: true }).done(function () {
-				$("#chatWindow").val("Connected\n");
-				$("#sendButton").click(function () {
-					conn.send({ "Send" : { "Message": $("#messageTextBox").val(), "Groups": [ "All" ] } });
-					$("#messageTextBox").val("");
-				});
-			})
-			.fail(function(){
-				$("#chatWindow").val($("#chatWindow").val() + "Error connecting to chat service\n");
-			});
+			var chat = $("#chatWindow");
 
 			conn.received(function(data){
-				$("#chatWindow").val($("#chatWindow").val() + "RECEIVED: " + data + "\n");
+				chat.val(chat.val() + "RECEIVED: " + data + "\n");
 			});
 
 			conn.error(function (err) {
-				$("#chatWindow").val($("#chatWindow").val() + "ERROR: " + err.Message + "\n");
+				if(err.Message !== undefined)
+					chat.val(chat.val() + "ERROR: " + err.Message + "\n");
 			});
+
+			var connected = false;
+			conn.stateChanged(function () {
+				if (connected) {
+					chat.val(chat.val() + "CONNECTION LOST\n");
+					connected = false;
+				} else {
+					chat.val(chat.val() + "CONNECTION RESTORED\n");
+					connected = true;
+				}
+			});
+
+			conn.disconnected(function () {
+				chat.val(chat.val() + "CONNECTION DESTROYED\n");
+
+				/* TODO: figure out reconnect logic
+				var reconnect = (function () {
+					var count = 0;
+					function run(attempts) {
+						if (attempts < 30) {
+							chat.val(chat.val() + "RECONNECTING...\n");
+							setTimeout(conn.start()
+								.done(function () { chat.val(chat.val() + "CONNECTION RESTORED\n"); })
+								.fail(run(attempts)), 2000);
+							attempts++;
+						}
+					}
+
+					run(count);
+				});
+
+				reconnect();
+				*/
+			});
+
+			conn.start({ transport: 'auto', xdomain: true }).done(function () {
+				chat.val("Connected\n");
+				connected = true;
+				$("#sendButton").click(function () {
+					conn.send({ "Send": { "Message": $("#messageTextBox").val(), "Groups": ["All"] } });
+					$("#messageTextBox").val("");
+				});
+			})
+			.fail(function () {
+				chat.val(chat.val() + "Error connecting to chat service\n");
+			});
+
 		});
 	</script>
 </head>

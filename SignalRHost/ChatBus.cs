@@ -1,12 +1,4 @@
 ﻿using Microsoft.AspNet.SignalR;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using SignalRHost.Handlers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace SignalRHost
@@ -29,10 +21,10 @@ namespace SignalRHost
 
 			cmd.ConnectionId = connectionId;
 
-			dynamic handler = resolver.ResolveCommandHandler(cmd.GetType(), request);
+			dynamic handler = resolver.ResolveCommandHandler(cmd.GetType());
 
 			if (handler != null)
-				return handler.Handle(cmd);
+				return handler.Handle(request, cmd);
 
 			return EmptyTask();
 		}

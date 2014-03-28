@@ -1,22 +1,22 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SignalRHost;
-using Microsoft.AspNet.SignalR;
-using Moq;
-using SignalRHost.Messaging.Commands;
-using SignalRHost.Handlers;
+﻿using Microsoft.AspNet.SignalR;
 using Microsoft.Practices.Unity;
-using System.Collections.Generic;
-using SignalRHost.Messaging.Events;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Moq;
 using Newtonsoft.Json.Linq;
+using SignalRHost;
+using SignalRHost.Messaging.Commands;
+using SignalRHost.Messaging.Events;
+using SignalRHost.Utility;
+using System;
 
 namespace ChatApp.Test
 {
 	[TestClass]
 	public class UnitTest1
 	{
-		Mock<IConnection> bus;
+		Mock<IConnection> connection;
 		Mock<IConnectionGroupManager> groups;
+		Mock<IPersistentConnectionContext> context;
 
 		TypeResolver resolver;
 		IUnityContainer container;
@@ -30,23 +30,34 @@ namespace ChatApp.Test
 		[TestInitialize]
 		public void Init() 
 		{
-			bus = new Mock<IConnection>(MockBehavior.Strict);
+			connection = new Mock<IConnection>(MockBehavior.Strict);
 			groups = new Mock<IConnectionGroupManager>(MockBehavior.Strict);
+			context = new Mock<IPersistentConnectionContext>(MockBehavior.Strict);
+
+			context.SetupGet(x => x.Connection).Returns(connection.Object);
+			context.SetupGet(x => x.Groups).Returns(groups.Object);
 
 			container = new UnityContainer();
 			resolver = new TypeResolver(container);
 
-			container.RegisterInstance<IConnection>(bus.Object);
+			container.RegisterInstance<IConnection>(connection.Object);
 			container.RegisterInstance<IConnectionGroupManager>(groups.Object);
+			container.RegisterInstance<IPersistentConnectionContext>(context.Object);
 
 			resolver.LoadCommands(new string[] { "SignalRHost.Messaging.Commands" });
 			resolver.LoadHandlers(new string[] { "SignalRHost.Handlers" });
 		}
 
+		private void SetupSend(Func<ConnectionMessage, bool> verify)
+		{
+			connection.SetupGet(x => x.DefaultSignal).Returns("toutlemonde");
+			connection.Setup(x => x.Send(It.Is<ConnectionMessage>(m => verify.Invoke(m)))).Returns(TaskAsyncHelper.Empty);
+		}
+
 		[TestCleanup]
 		public void Cleanup()
 		{
-			bus.VerifyAll();
+			connection.VerifyAll();
 			groups.VerifyAll();
 		}
 
@@ -66,23 +77,23 @@ namespace ChatApp.Test
 			var start = DateTimeOffset.Now;
 			var connectionId = Guid.NewGuid().ToString();
 
-			groups.Setup(g => g.Send(
-				It.Is<List<String>>(x => x.Count == 1 && x[0] == "All"),
-				It.Is<object>(x => 
-					x is MessageSent 
-					&& ((MessageSent)x).Message == "Hello, World!"
-					&& ((MessageSent)x).Username == "Mark"
-					&& ((MessageSent)x).Timestamp >= start
-				),
-				It.Is<string[]>(x => x.Length == 1 && x[0] == connectionId)
-			));
+			SetupSend(x =>
+					x.Value is MessageSent
+					&& ((MessageSent)x.Value).Message == "Hello, World!"
+					&& ((MessageSent)x.Value).Username == "Mark"
+					&& ((MessageSent)x.Value).Timestamp >= start
+				);
 
 			var request = new Mock<IRequest>();
 
 			var target = new ChatBus(resolver);
 			var task = target.OnReceived(request.Object, connectionId, "{ \"Send\": { \"Username\": \"Mark\", \"Message\": \"Hello, World!\", \"Groups\": [\"All\"] } }");
 
-			task.RunSynchronously();
+			if (!task.IsCompleted)
+			{
+				task.Start();
+				task.Wait(TimeSpan.FromSeconds(5));
+			}
 		}
 
 		[TestMethod]

@@ -1,14 +1,9 @@
-﻿using Microsoft.AspNet.SignalR;
-using Microsoft.Practices.Unity;
-using Newtonsoft.Json;
+﻿using Microsoft.Practices.Unity;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SignalRHost
 {
@@ -124,15 +119,12 @@ namespace SignalRHost
 			return null;
 		}
 
-		public object ResolveCommandHandler(Type commandType, IRequest request)
+		public object ResolveCommandHandler(Type commandType)
 		{
-			var child = container.CreateChildContainer();
-			child.RegisterInstance<IRequest>(request);
-
 			// define new IHandler<T> type based on commandType parameter
 			var hType = handlers[commandType];
 
-			return child.Resolve(hType);
+			return container.Resolve(hType);
 		}
 
 		public Type FindCommandType(string name)

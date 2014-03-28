@@ -2,9 +2,6 @@
 using SignalRHost.Messaging.Commands;
 using SignalRHost.Messaging.Events;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace SignalRHost.Handlers
@@ -13,16 +10,17 @@ namespace SignalRHost.Handlers
 	{
 		IPersistentConnectionContext context;
 
-		public ChatHandler(IDependencyResolver resolver)
+		public ChatHandler(IPersistentConnectionContext context)
 		{
-			this.context = resolver.Resolve<IPersistentConnectionContext>();
+			this.context = context;
 		}
 
-		public Task Handle(Send message)
+		public Task Handle(IRequest request, Send message)
 		{
 			if (message.Groups.Length == 0)
 				message.Groups = new string[] { "All" };
 
+			
 			return context.Connection.Broadcast(new MessageSent
 				{
 					Username = message.Username,
@@ -30,16 +28,6 @@ namespace SignalRHost.Handlers
 					Timestamp = DateTimeOffset.UtcNow
 				}
 			);
-			//return context.Groups.Send(
-			//	new List<string>(message.Groups), 
-			//	new MessageSent
-			//	{
-			//		Username = message.Username,
-			//		Message = message.Message,
-			//		Timestamp = DateTimeOffset.UtcNow
-			//	} 
-			//	//, message.ConnectionId
-			//);
 		}
 	}
 }
