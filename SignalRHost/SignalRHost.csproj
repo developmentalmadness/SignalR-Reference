@@ -80,7 +80,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ChatBus.cs" />
+    <Compile Include="ChatRouter.cs" />
     <Compile Include="ChatConnection.cs" />
     <Compile Include="Handlers\ChatHandler.cs" />
     <Compile Include="IHandler.cs" />

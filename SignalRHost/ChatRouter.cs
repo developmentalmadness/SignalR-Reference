@@ -1,16 +1,24 @@
 ﻿using Microsoft.AspNet.SignalR;
+using SignalRHost.Utility;
 using System.Threading.Tasks;
 
 namespace SignalRHost
 {
 	/// <summary>
-	/// Threw this class in until I can figure out the best way to test a class that inherits from PersistentConnection
+	/// Routes commands to their mapped command handler
 	/// </summary>
-	public class ChatBus
+	/// <remarks>
+	/// The purpose of this class is two-fold:
+	/// <ol>
+	///		<li>Provide a testible proxy for our PersistentConnection (ChatConnection) class.</li>
+	///		<li>Map JSON messages to POCOs and then to their mapped IHandler&lt;&gt;</li>
+	/// </ol>
+	/// </remarks>
+	public class ChatRouter
 	{
 		TypeResolver resolver;
 
-		public ChatBus(TypeResolver resolver)
+		public ChatRouter(TypeResolver resolver)
 		{
 			this.resolver = resolver;
 		}
@@ -26,14 +34,7 @@ namespace SignalRHost
 			if (handler != null)
 				return handler.Handle(request, cmd);
 
-			return EmptyTask();
-		}
-
-		private Task EmptyTask()
-		{
-			var tcs = new TaskCompletionSource<object>();
-			tcs.SetResult(null);
-			return tcs.Task;
+			return TaskAsyncHelper.Empty;
 		}
 	}
 }

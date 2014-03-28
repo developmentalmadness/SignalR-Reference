@@ -6,11 +6,11 @@ namespace SignalRHost
 {
 	public class ChatConnection : PersistentConnection
 	{
-		private ChatBus bus;
+		private ChatRouter router;
 
-		public ChatConnection(ChatBus bus)
+		public ChatConnection(ChatRouter bus)
 		{
-			this.bus = bus;
+			this.router = bus;
 		}
 
 		protected override Task OnConnected(IRequest request, string connectionId)
@@ -21,7 +21,7 @@ namespace SignalRHost
 		
 		protected override Task OnReceived(IRequest request, string connectionId, string data)
 		{
-			return bus.OnReceived(request, connectionId, data);
+			return router.OnReceived(request, connectionId, data);
 		}
 	}
 }

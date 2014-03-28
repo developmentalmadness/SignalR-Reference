@@ -1,29 +1,41 @@
-﻿using Microsoft.Practices.Unity;
+﻿using Microsoft.AspNet.SignalR.Tracing;
+using Microsoft.Practices.Unity;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
 namespace SignalRHost
 {
+	/// <summary>
+	/// Provides mapping of message types by name to allow message passing from clients
+	/// w/o requiring namespaces. 
+	/// </summary>
+	/// <remarks>
+	/// This isn't as clean an abstraction as I'd like. It supports loosly-coupled late
+	/// binding in our messages, but it doesn't feel quite right yet.
+	/// </remarks>
 	public class TypeResolver
 	{
-		IEnumerable<Type> commands;
+		IDictionary<String, Type> commands = new Dictionary<String, Type>();
 		IDictionary<Type, Type> handlers = new Dictionary<Type, Type>();
 
-		private static object sync_lock = new object();
-		private static IEnumerable<Type> types;
+		private static Object sync_lock = new Object();
+		private IEnumerable<Type> types;
 
-		public IUnityContainer container;
+		private IUnityContainer container;
+		private TraceSource logger;
 
-		public TypeResolver(IUnityContainer container)
+		public TypeResolver(IUnityContainer container, ITraceManager traceManager)
 		{
 			this.container = container;
+			this.logger = traceManager["SignalRHost"];
 			GetExportedTypes();
 		}
 
-		internal static IEnumerable<Type> GetExportedTypes()
+		internal IEnumerable<Type> GetExportedTypes()
 		{
 			if (types == null)
 			{
@@ -54,10 +66,16 @@ namespace SignalRHost
 				   where namespaces.Any(n => n == t.Namespace)
 				   select t;
 
-			if (commands == null)
-				commands = list;
-			else
-				commands = commands.Union(list);
+			foreach (var t in list)
+			{
+				if (commands.ContainsKey(t.Name))
+				{
+					logger.TraceWarning("Repeat attempt to load command '{0}'", t.FullName);
+					continue;
+				}
+
+				commands.Add(t.Name, t);
+			}
 		}
 
 		public void LoadHandlers(string[] namespaces)
@@ -121,15 +139,33 @@ namespace SignalRHost
 
 		public object ResolveCommandHandler(Type commandType)
 		{
-			// define new IHandler<T> type based on commandType parameter
-			var hType = handlers[commandType];
+			if (handlers.ContainsKey(commandType))
+			{
+				// define new IHandler<T> type based on commandType parameter
+				var hType = handlers[commandType];
 
-			return container.Resolve(hType);
+				return container.Resolve(hType);
+			}
+
+			return null;
+		}
+
+		public object ResolveCommandHandler(string commandName)
+		{
+			var type = FindCommandType(commandName);
+			
+			if (type != null)
+				return ResolveCommandHandler(type);
+
+			return null;
 		}
 
 		public Type FindCommandType(string name)
 		{
-			return commands.SingleOrDefault(c => c.Name == name);
+			if (commands.ContainsKey(name))
+				return commands[name];
+
+			return null;
 		}
 	}
 }

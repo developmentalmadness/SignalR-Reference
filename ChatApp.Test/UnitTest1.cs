@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNet.SignalR;
+using Microsoft.AspNet.SignalR.Tracing;
 using Microsoft.Practices.Unity;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
@@ -8,6 +9,7 @@ using SignalRHost.Messaging.Commands;
 using SignalRHost.Messaging.Events;
 using SignalRHost.Utility;
 using System;
+using System.Diagnostics;
 
 namespace ChatApp.Test
 {
@@ -17,15 +19,10 @@ namespace ChatApp.Test
 		Mock<IConnection> connection;
 		Mock<IConnectionGroupManager> groups;
 		Mock<IPersistentConnectionContext> context;
+		Mock<ITraceManager> traceManager;
 
 		TypeResolver resolver;
 		IUnityContainer container;
-
-		[ClassInitialize]
-		public static void Startup(TestContext ctx)
-		{
-			TypeResolver.GetExportedTypes();
-		}
 
 		[TestInitialize]
 		public void Init() 
@@ -33,19 +30,24 @@ namespace ChatApp.Test
 			connection = new Mock<IConnection>(MockBehavior.Strict);
 			groups = new Mock<IConnectionGroupManager>(MockBehavior.Strict);
 			context = new Mock<IPersistentConnectionContext>(MockBehavior.Strict);
+			traceManager = new Mock<ITraceManager>(MockBehavior.Strict);
 
 			context.SetupGet(x => x.Connection).Returns(connection.Object);
 			context.SetupGet(x => x.Groups).Returns(groups.Object);
 
+			traceManager.SetupGet(x => x["SignalRHost"]).Returns(new TraceSource("SignalRHost"));
+
 			container = new UnityContainer();
-			resolver = new TypeResolver(container);
 
 			container.RegisterInstance<IConnection>(connection.Object);
 			container.RegisterInstance<IConnectionGroupManager>(groups.Object);
 			container.RegisterInstance<IPersistentConnectionContext>(context.Object);
+			container.RegisterInstance<ITraceManager>(traceManager.Object);
 
+			resolver = container.Resolve<TypeResolver>();
 			resolver.LoadCommands(new string[] { "SignalRHost.Messaging.Commands" });
 			resolver.LoadHandlers(new string[] { "SignalRHost.Handlers" });
+			container.RegisterInstance<TypeResolver>(resolver);
 		}
 
 		private void SetupSend(Func<ConnectionMessage, bool> verify)
@@ -86,7 +88,7 @@ namespace ChatApp.Test
 
 			var request = new Mock<IRequest>();
 
-			var target = new ChatBus(resolver);
+			var target = new ChatRouter(resolver);
 			var task = target.OnReceived(request.Object, connectionId, "{ \"Send\": { \"Username\": \"Mark\", \"Message\": \"Hello, World!\", \"Groups\": [\"All\"] } }");
 
 			if (!task.IsCompleted)
